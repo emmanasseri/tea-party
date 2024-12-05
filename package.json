@@ -1,0 +1,12 @@
+
+{
+    "private": true, 
+    "workspaces": ["server", "client"],
+    "scripts": {
+      "start:server": "cd server && node index.js",
+      "start:client": "cd client && yarn start",
+      "build:client": "cd client && yarn build",
+      "install:server": "cd server && yarn",
+      "install:client": "cd client && yarn"
+    }
+  }
