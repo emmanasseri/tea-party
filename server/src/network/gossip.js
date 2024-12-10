@@ -1,78 +1,67 @@
-// server/src/network/gossip.js
-const WebSocket = require("ws");
-
+import { io } from "socket.io-client";
 class GossipManager {
-  constructor(port, initialPeers) {
+  constructor(port, initialPeers, socketServer) {
     this.port = port;
-    this.peers = new Set(initialPeers);
-    this.clients = new Map(); // WebSocket connections to other peers
+    this.peers = new Set(initialPeers); // Initialize with any known peers
+    this.io = socketServer; // Socket.IO server instance
+    this.clients = new Map(); // Active connections
 
+    // Initialize connections to initial peers and set up listening
     this.peers.forEach((peer) => this.connectToPeer(peer));
+    this.setupPeerConnectionListener();
+  }
+
+  setupPeerConnectionListener() {
+    this.io.on("connection", (socket) => {
+      // When a new peer announces itself
+      socket.on("peer-announcement", (newPeer) => {
+        this.handleNewPeer(newPeer);
+      });
+    });
   }
 
   connectToPeer(peer) {
-    if (peer === this.port.toString()) return; // Don't connect to self
-    const url = `ws://localhost:${peer}`;
-    const client = new WebSocket(url);
+    if (peer === this.port.toString() || this.clients.has(peer)) return; // Avoid self-connection and duplicates
 
-    client.on("open", () => {
-      console.log(`[${this.port}] Connected to peer at ${url}`);
+    const url = `http://localhost:${peer}`;
+    const client = io(url);
+
+    client.on("connect", () => {
+      console.log(`[${this.port}] Connected to new peer on port ${peer}`);
       this.clients.set(peer, client);
-      this.sendPeerList(client);
+      // Announce to this new peer
+      client.emit("peer-announcement", this.port);
+      // Broadcast to other peers about this new connection
+      this.broadcastNewPeer(peer);
     });
 
-    client.on("message", (message) => {
-      this.handleMessage(message);
+    client.on("disconnect", () => {
+      console.log(`[${this.port}] Disconnected from peer at port ${peer}`);
+      this.clients.delete(peer);
+      this.peers.delete(peer);
     });
 
     client.on("error", (error) => {
-      console.log(
-        `[${this.port}] Error connecting to ${url}: ${error.message}`
-      );
+      console.error(`[${this.port}] Error with peer at port ${peer}:`, error);
     });
   }
 
-  sendPeerList(client) {
-    const peerList = Array.from(this.peers);
-    client.send(JSON.stringify({ type: "peerList", peers: peerList }));
-    console.log(`[${this.port}] Sent peer list to ${client.url}`);
-  }
-
-  handleMessage(message) {
-    try {
-      const data = JSON.parse(message);
-
-      if (data.type === "peerList") {
-        console.log(`[${this.port}] Received peer list from a peer`);
-        this.updatePeers(data.peers);
-      } else if (data.type === "greeting") {
-        console.log(`[${this.port}] Received greeting: ${data.message}`);
-        // Handle greeting logic or simply ignore since it's just a welcome message.
-      } else {
-        console.log(
-          `[${this.port}] Received unknown message type: ${data.type}`
-        );
-      }
-    } catch (error) {
-      console.log(`[${this.port}] Non-JSON message received: ${message}`);
-    }
-  }
-
-  updatePeers(newPeers) {
-    let newPeerAdded = false;
-    newPeers.forEach((peer) => {
-      if (!this.peers.has(peer) && peer !== this.port.toString()) {
-        this.peers.add(peer);
-        this.connectToPeer(peer);
-        newPeerAdded = true;
+  broadcastNewPeer(newPeer) {
+    // Notify all connected peers about the new peer
+    this.clients.forEach((client, peer) => {
+      if (peer !== newPeer.toString()) {
+        // Avoid sending back to the same peer
+        client.emit("peer-announcement", newPeer);
       }
     });
-    if (newPeerAdded) {
-      console.log(
-        `[${this.port}] Updated peer list: ${Array.from(this.peers)}`
-      );
+  }
+
+  handleNewPeer(newPeer) {
+    if (!this.peers.has(newPeer) && newPeer !== this.port.toString()) {
+      this.peers.add(newPeer);
+      this.connectToPeer(newPeer);
     }
   }
 }
 
-module.exports = GossipManager;
+export default GossipManager;

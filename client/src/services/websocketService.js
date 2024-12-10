@@ -46,5 +46,13 @@ export const useSocket = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const socket = io();
+    socket.on("new-peer", (data) => {
+      console.log("New peer data:", data);
+      // Update your state or UI here
+    });
+  }, []);
+
   return { data, status };
 };

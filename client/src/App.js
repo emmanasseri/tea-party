@@ -24,6 +24,9 @@ function App() {
   const handleWalletConnect = () => {
     setIsWalletConnected(true);
   };
+
+
+
   const peers = ["peer1", "peer2", "peer3", "peer4", "peer5"];
 
   return (
