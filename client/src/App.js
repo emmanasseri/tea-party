@@ -18,7 +18,7 @@ function App() {
         alignItems="center"
         justifyContent="center"
       >
-        <Button colorScheme="teal" size="lg" onClick={handleWalletConnect}>
+        <Button colorScheme="blue" size="lg" onClick={handleWalletConnect}>
           Connect Wallet
         </Button>
       </Box>

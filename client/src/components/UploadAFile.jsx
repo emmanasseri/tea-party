@@ -41,7 +41,7 @@ function UploadAFile({ socket }) {
       mt="20"
     >
       <input {...getInputProps()} />
-      <Button colorScheme="teal" size="md" onClick={open}>
+      <Button colorScheme="blue" size="md" onClick={open}>
         Upload a File
       </Button>
     </Box>
