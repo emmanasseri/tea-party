@@ -1,27 +1,63 @@
 import { io } from "socket.io-client";
+
 class GossipManager {
   constructor(port, initialPeers, socketServer) {
     this.port = port;
-    this.peers = new Set(initialPeers); // Initialize with any known peers
-    this.io = socketServer; // Socket.IO server instance
-    this.clients = new Map(); // Active connections
+    this.peers = new Set(initialPeers);
+    this.io = socketServer;
+    this.clients = new Map();
+    this.allFiles = new Map(); // Store all known file metadata
 
-    // Initialize connections to initial peers and set up listening
-    this.peers.forEach((peer) => this.connectToPeer(peer));
+    initialPeers.forEach((peer) => this.connectToPeer(peer));
     this.setupPeerConnectionListener();
   }
 
   setupPeerConnectionListener() {
     this.io.on("connection", (socket) => {
-      // When a new peer announces itself
       socket.on("peer-announcement", (newPeer) => {
         this.handleNewPeer(newPeer);
+      });
+
+      socket.on("new-file-upload", (fileData) => {
+        this.handleFileMetadata(socket, fileData, true); // True indicates origin from upload
+      });
+
+      socket.on("update-file-metadata", (fileData) => {
+        this.handleFileMetadata(socket, fileData, false); // False indicates reception from another node
       });
     });
   }
 
+  handleFileMetadata(socket, fileData, isOrigin) {
+    console.log(
+      `Received file data from [${socket.id}]: ${JSON.stringify(fileData)}`
+    );
+    const existingFile = this.allFiles.get(fileData.name);
+
+    // Check if the file is new or has been updated
+    if (
+      !existingFile ||
+      (existingFile && existingFile.lastModified < fileData.lastModified)
+    ) {
+      this.allFiles.set(fileData.name, fileData); // Update the central store with new or updated file metadata
+
+      // Broadcast only if this is a new or updated file and the metadata originated from this node
+      if (isOrigin) {
+        this.broadcastFileMetadata(fileData);
+      }
+    } else {
+      console.log(`File data for ${fileData.name} is already up-to-date.`);
+    }
+  }
+
+  broadcastFileMetadata(fileData) {
+    console.log(`Broadcasting file metadata: ${JSON.stringify(fileData)}`);
+    this.clients.forEach((client) => {
+      client.emit("update-file-metadata", fileData);
+    });
+  }
   connectToPeer(peer) {
-    if (peer === this.port.toString() || this.clients.has(peer)) return; // Avoid self-connection and duplicates
+    if (peer === this.port.toString() || this.clients.has(peer)) return;
 
     const url = `http://localhost:${peer}`;
     const client = io(url);
@@ -29,10 +65,7 @@ class GossipManager {
     client.on("connect", () => {
       console.log(`[${this.port}] Connected to new peer on port ${peer}`);
       this.clients.set(peer, client);
-      // Announce to this new peer
       client.emit("peer-announcement", this.port);
-      // Broadcast to other peers about this new connection
-      this.broadcastNewPeer(peer);
     });
 
     client.on("disconnect", () => {
@@ -47,10 +80,8 @@ class GossipManager {
   }
 
   broadcastNewPeer(newPeer) {
-    // Notify all connected peers about the new peer
     this.clients.forEach((client, peer) => {
       if (peer !== newPeer.toString()) {
-        // Avoid sending back to the same peer
         client.emit("peer-announcement", newPeer);
       }
     });

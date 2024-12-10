@@ -21,7 +21,7 @@ const gradientShift = keyframes`
 
 function App() {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const { peers, status } = useSocket(); // Get peers and connection status from the hook
+  const { socket, peers, status } = useSocket(); // Get peers and connection status from the hook
 
   const handleWalletConnect = () => {
     setIsWalletConnected(true);
@@ -46,7 +46,7 @@ function App() {
       {isWalletConnected ? (
         <>
           <PeerDisplay peerList={peers} />
-          <UploadAFile />
+          <UploadAFile socket={socket} />
           <FileListing />
         </>
       ) : (

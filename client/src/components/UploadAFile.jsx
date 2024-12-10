@@ -6,22 +6,28 @@ function UploadAFile({ socket }) {
   const onDrop = useCallback(
     (acceptedFiles) => {
       console.log("Files dropped:", acceptedFiles);
-      const file = acceptedFiles[0]; // Since `multiple: false`, only one file is handled
+      const file = acceptedFiles[0];
 
-      // Prepare file metadata to send over WebSocket
       const fileData = {
         name: file.name,
         size: file.size,
-        type: file.type,
-        lastModified: file.lastModified,
+        owner: "Owner Name", // Example owner
       };
 
-      // Send file metadata to the server via WebSocket
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: "announceFile", file: fileData }));
+      console.log("Attempting to send file data:", fileData);
+      console.log(
+        "Socket connected status:",
+        socket ? socket.connected : "No socket instance"
+      );
+
+      if (socket && socket.connected) {
+        socket.emit("new-file-upload", fileData);
+        console.log("File data sent to the server.");
+      } else {
+        console.log("Socket is not connected.");
       }
     },
-    [socket] // Include socket in the dependency array
+    [socket]
   );
 
   const { getRootProps, getInputProps, open } = useDropzone({

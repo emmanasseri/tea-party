@@ -1,59 +1,39 @@
-// server/src/network/handlers.js
 class FileHandler {
   constructor(gossipManager) {
-    this.gossipManager = gossipManager; // Dependency injection of Gossip Manager
+    this.gossipManager = gossipManager;
     this.files = new Map(); // Tracks files available on this node
   }
 
-  announceFiles(ws, fileList) {
-    // Announce local files to the network
-    this.files.set(ws, fileList);
+  announceFiles(socket, fileData) {
+    this.gossipManager.handleFileMetadata(socket, fileData);
     console.log(
-      `[${ws._socket.remoteAddress}:${ws._socket.remotePort}] Updated files for this client: ${fileList}`
+      `Announced file from [${socket.id}]: ${JSON.stringify(fileData)}`
     );
-    // Optionally broadcast file list to all connected peers
-    this.broadcastFileList();
   }
 
-  handleFileRequest(ws, fileName) {
-    // Attempt to find a peer that has the requested file
-    const peer = this.findPeerWithFile(fileName);
-    if (peer) {
-      console.log(
-        `[${ws._socket.remoteAddress}:${ws._socket.remotePort}] File ${fileName} requested. Directing to peer.`
-      );
-      ws.send(`Request file ${fileName} from ${peer}`);
+  handleFileRequest(socket, fileName) {
+    const fileData = this.gossipManager.allFiles.get(fileName);
+    if (fileData) {
+      console.log(`File ${fileName} requested, directing to download.`);
+      socket.emit("fileLocation", fileData);
     } else {
-      console.log(
-        `[${ws._socket.remoteAddress}:${ws._socket.remotePort}] File ${fileName} not found.`
-      );
-      ws.send("File not found.");
+      console.log(`File ${fileName} not found.`);
+      socket.emit("fileNotFound", { fileName });
     }
   }
 
   findPeerWithFile(fileName) {
-    // Check own files first
-    if (Array.from(this.files.values()).flat().includes(fileName)) {
-      return `localhost:${this.gossipManager.port}`;
-    }
-    // Check files from all known peers
-    for (let [peer, client] of this.gossipManager.clients) {
-      if (
-        this.gossipManager.peersFiles[peer] &&
-        this.gossipManager.peersFiles[peer].includes(fileName)
-      ) {
-        return `localhost:${peer}`;
+    for (let [ws, files] of this.files) {
+      if (files.some((file) => file.name === fileName)) {
+        return ws.id; // Assume each socket has a unique ID
       }
     }
     return null;
   }
 
   broadcastFileList() {
-    // Send updated file list to all peers
-    const fileList = Array.from(this.files.values()).flat();
-    this.gossipManager.clients.forEach((client) => {
-      client.send(JSON.stringify({ type: "updateFileList", files: fileList }));
-    });
+    const allFiles = Array.from(this.files.values()).flat();
+    this.gossipManager.io.emit("updateFileList", allFiles); // Assuming the GossipManager has access to the io instance
   }
 }
 
