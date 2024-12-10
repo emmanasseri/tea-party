@@ -20,7 +20,7 @@ const PeerDisplay = ({ peerList }) => {
         bottom="50%"
       >
         {peerList.map((teacup, index) => (
-          <Image key={index} src="peer.gif" alt="Teacup" boxSize="80px" />
+          <Image key={index} src="peer.gif" alt="Teacup" maxH={"80px"} />
         ))}
       </HStack>
     </Box>
