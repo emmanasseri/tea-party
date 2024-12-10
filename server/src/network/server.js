@@ -36,3 +36,9 @@ server.listen(port, async () => {
     console.error("Failed to open browser:", err);
   }
 });
+
+setInterval(() => {
+  const peerList = Array.from(gossipManager.peers); // Assuming `peers` is a Set of active peers
+  io.emit("update-peer-list", peerList);
+  console.log("Broadcasting updated peer list:", peerList);
+}, 10000); // Broadcast every 10 seconds

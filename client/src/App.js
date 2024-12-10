@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { Box, Button, keyframes } from "@chakra-ui/react";
-import Header from "./components/Header"; // Assuming you have a Header component
+import Header from "./components/Header";
 import FileListing from "./components/FileListing";
 import MainHeading from "./components/MainHeading";
 import PeerDisplay from "./components/PeerDisplay";
 import UploadAFile from "./components/UploadAFile";
+import useSocket from "./services/websocketService";
 
 const gradientShift = keyframes`
   0% {
@@ -20,14 +21,13 @@ const gradientShift = keyframes`
 
 function App() {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
+  const { peers, status } = useSocket(); // Get peers and connection status from the hook
 
   const handleWalletConnect = () => {
     setIsWalletConnected(true);
   };
 
-
-
-  const peers = ["peer1", "peer2", "peer3", "peer4", "peer5"];
+  console.log("Current peers:", peers); // Log the dynamic list of peers
 
   return (
     <Box
@@ -52,7 +52,7 @@ function App() {
       ) : (
         <Button colorScheme="blue" size="lg" onClick={handleWalletConnect}>
           Connect Wallet
-        </Button> // Show connect wallet button if not connected
+        </Button>
       )}
     </Box>
   );
