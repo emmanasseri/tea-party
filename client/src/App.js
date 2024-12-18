@@ -21,13 +21,14 @@ const gradientShift = keyframes`
 
 function App() {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const { socket, peers, status } = useSocket(); // Get peers and connection status from the hook
+  const { socket, peers, status, networkFiles } = useSocket(); // Get peers and connection status from the hook
 
   const handleWalletConnect = () => {
     setIsWalletConnected(true);
   };
 
   console.log("Current peers:", peers); // Log the dynamic list of peers
+  console.log("Current files:", networkFiles); // Log the dynamic list of files
 
   return (
     <Box
@@ -36,7 +37,6 @@ function App() {
       alignItems="center"
       flexDirection="column"
       p="6"
-      mt="20"
       background="linear-gradient(270deg, #FBB6CE, #9F7AEA, #FBB6CE)"
       backgroundSize="400% 400%"
       animation={`${gradientShift} 20s ease infinite`}
@@ -47,7 +47,7 @@ function App() {
         <>
           <PeerDisplay peerList={peers} />
           <UploadAFile socket={socket} />
-          <FileListing />
+          <FileListing fileList={networkFiles} />
         </>
       ) : (
         <Button colorScheme="blue" size="lg" onClick={handleWalletConnect}>

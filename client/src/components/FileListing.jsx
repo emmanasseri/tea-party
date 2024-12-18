@@ -11,27 +11,19 @@ import {
   Input,
 } from "@chakra-ui/react";
 
-function FileListing() {
+function FileListing({ fileList }) {
   const [files, setFiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Update local state whenever fileList prop changes
   useEffect(() => {
-    fetchFiles();
-  }, []);
-
-  const fetchFiles = async () => {
-    // Simulate fetching data from peers
-    const fetchedFiles = [
-      { id: 1, name: "example.pdf", size: "1MB", owner: "Peer1" },
-      { id: 2, name: "sample.txt", size: "200KB", owner: "Peer2" },
-      { id: 3, name: "test.jpg", size: "500KB", owner: "Peer3" },
-    ];
-    setFiles(fetchedFiles);
-  };
+    console.log("FileListing received updated fileList:", fileList);
+    setFiles(fileList);
+  }, [fileList]);
 
   const downloadFile = (fileName) => {
-    console.log(`Downloading ${fileName}`);
-    // Add download logic here
+    console.log(`Attempting to download: ${fileName}`);
+    // Add actual download logic here if available
   };
 
   const handleSearchChange = (event) => {
@@ -41,8 +33,10 @@ function FileListing() {
   const filteredFiles = files.filter(
     (file) =>
       file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      file.size.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      file.owner.toLowerCase().includes(searchTerm.toLowerCase())
+      (file.size &&
+        file.size.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (file.owner &&
+        file.owner.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -52,14 +46,17 @@ function FileListing() {
         value={searchTerm}
         onChange={handleSearchChange}
         marginBottom="10px"
-        borderColor="blue.600" // Set the border color to a darker blue
-        borderWidth="2px" // Make the border thicker
-        _focus={{
-          // Customizes the border color on focus
-          borderColor: "blue.300",
-        }}
+        borderColor="blue.600"
+        borderWidth="2px"
+        _focus={{ borderColor: "blue.300" }}
       />
-      <Button colorScheme="blue" onClick={fetchFiles} marginBottom="10px">
+      {/* If you want to refresh files from server-side, 
+          you could implement a call here. For now, let's just log that the button was clicked. */}
+      <Button
+        colorScheme="blue"
+        onClick={() => console.log("Refresh Files button clicked")}
+        marginBottom="10px"
+      >
         Refresh Files
       </Button>
       <Table variant="simple">
@@ -72,11 +69,11 @@ function FileListing() {
           </Tr>
         </Thead>
         <Tbody>
-          {filteredFiles.map((file) => (
-            <Tr key={file.id}>
+          {filteredFiles.map((file, index) => (
+            <Tr key={file.id || index}>
               <Td>{file.name}</Td>
-              <Td>{file.size}</Td>
-              <Td>{file.owner}</Td>
+              <Td>{file.size || "N/A"}</Td>
+              <Td>{file.owner || "Unknown"}</Td>
               <Td>
                 <Button
                   colorScheme="blue"

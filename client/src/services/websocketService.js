@@ -5,6 +5,7 @@ const useSocket = () => {
   const [socket, setSocket] = useState(null);
   const [peers, setPeers] = useState([]);
   const [status, setStatus] = useState("disconnected");
+  const [networkFiles, setNetworkFiles] = useState([]);
 
   useEffect(() => {
     const newSocket = io("/", {
@@ -22,6 +23,16 @@ const useSocket = () => {
     newSocket.on("update-peer-list", (updatedPeers) => {
       console.log("Received updated peer list:", updatedPeers);
       setPeers(updatedPeers);
+    });
+
+    newSocket.on("initial-file-list", (fileList) => {
+      console.log("Received initial file list:", fileList);
+      setNetworkFiles(fileList);
+    });
+
+    newSocket.on("update-network-file-list", (updatedNetworkFiles) => {
+      console.log("Received updated file list:", updatedNetworkFiles);
+      setNetworkFiles(updatedNetworkFiles);
     });
 
     newSocket.on("disconnect", () => {
@@ -43,7 +54,7 @@ const useSocket = () => {
     };
   }, []);
 
-  return { socket, peers, status };
+  return { socket, peers, status, networkFiles };
 };
 
 export default useSocket;
