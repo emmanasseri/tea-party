@@ -6,10 +6,10 @@ function MainHeading() {
   return (
     <>
       <Heading as="h1" mb="4" size="xl" mt="20">
-        Home Page
+        Hello!
       </Heading>
       <Text fontSize="lg" mb="10">
-        You are connected! Explore the files and network.
+        Welcome to Tea Party, a decentralized file sharing system.
       </Text>
     </>
   );

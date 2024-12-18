@@ -21,14 +21,32 @@ const gradientShift = keyframes`
 
 function App() {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const { socket, peers, status, networkFiles } = useSocket(); // Get peers and connection status from the hook
+  const [walletAddress, setWalletAddress] = useState(null);
+  const { socket, peers, status, networkFiles } = useSocket();
 
-  const handleWalletConnect = () => {
-    setIsWalletConnected(true);
+  const handleWalletConnect = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        });
+        const address = accounts[0];
+        setWalletAddress(address);
+        setIsWalletConnected(true);
+
+        // Emit the wallet address to the server as a "new peer" announcement
+        socket.emit("peer-announcement", address);
+        console.log("address: ", address);
+      } catch (error) {
+        console.error("User rejected connection or another error:", error);
+      }
+    } else {
+      console.error("MetaMask is not installed.");
+    }
   };
 
-  console.log("Current peers:", peers); // Log the dynamic list of peers
-  console.log("Current files:", networkFiles); // Log the dynamic list of files
+  console.log("Current peers:", peers);
+  console.log("Current files:", networkFiles);
 
   return (
     <Box
@@ -45,6 +63,9 @@ function App() {
       <MainHeading />
       {isWalletConnected ? (
         <>
+          <Text fontSize="lg" mb="10">
+            You are connected! Explore the files and network.
+          </Text>
           <PeerDisplay peerList={peers} />
           <UploadAFile socket={socket} />
           <FileListing fileList={networkFiles} />
