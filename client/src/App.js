@@ -29,7 +29,7 @@ function App() {
     if (isConnected && address && socket) {
       console.log("Wallet connected with address:", address);
       // Once wallet is connected, send the node identity to the server
-      socket.emit("node-identity", { nodeId: address });
+      socket.emit("set-own-node-identity", { nodeId: address });
     }
   }, [isConnected, address, socket]);
 
