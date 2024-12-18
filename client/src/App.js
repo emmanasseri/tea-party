@@ -1,11 +1,13 @@
-import React, { useState } from "react";
-import { Box, Button, keyframes } from "@chakra-ui/react";
+import React, { useState, useEffect } from "react";
+import { Box, Button, Text, keyframes } from "@chakra-ui/react";
 import Header from "./components/Header";
 import FileListing from "./components/FileListing";
 import MainHeading from "./components/MainHeading";
 import PeerDisplay from "./components/PeerDisplay";
 import UploadAFile from "./components/UploadAFile";
 import useSocket from "./services/websocketService";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
 
 const gradientShift = keyframes`
   0% {
@@ -20,30 +22,16 @@ const gradientShift = keyframes`
 `;
 
 function App() {
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState(null);
-  const { socket, peers, status, networkFiles } = useSocket();
+  const { address, isConnected } = useAccount();
+  const { socket, peers, networkFiles } = useSocket();
 
-  const handleWalletConnect = async () => {
-    if (typeof window.ethereum !== "undefined") {
-      try {
-        const accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
-        });
-        const address = accounts[0];
-        setWalletAddress(address);
-        setIsWalletConnected(true);
-
-        // Emit the wallet address to the server as a "new peer" announcement
-        socket.emit("peer-announcement", address);
-        console.log("address: ", address);
-      } catch (error) {
-        console.error("User rejected connection or another error:", error);
-      }
-    } else {
-      console.error("MetaMask is not installed.");
+  useEffect(() => {
+    if (isConnected && address && socket) {
+      console.log("Wallet connected with address:", address);
+      // Once wallet is connected, send the node identity to the server
+      socket.emit("node-identity", { nodeId: address });
     }
-  };
+  }, [isConnected, address, socket]);
 
   console.log("Current peers:", peers);
   console.log("Current files:", networkFiles);
@@ -61,20 +49,13 @@ function App() {
     >
       <Header />
       <MainHeading />
-      {isWalletConnected ? (
-        <>
-          <Text fontSize="lg" mb="10">
-            You are connected! Explore the files and network.
-          </Text>
-          <PeerDisplay peerList={peers} />
-          <UploadAFile socket={socket} />
-          <FileListing fileList={networkFiles} />
-        </>
-      ) : (
-        <Button colorScheme="blue" size="lg" onClick={handleWalletConnect}>
-          Connect Wallet
-        </Button>
-      )}
+
+      <>
+        <ConnectButton />
+        <PeerDisplay peerList={peers} />
+        <UploadAFile socket={socket} />
+        <FileListing fileList={networkFiles} />
+      </>
     </Box>
   );
 }

@@ -1,5 +1,5 @@
-import io from "socket.io-client";
 import { useEffect, useState } from "react";
+import { io } from "socket.io-client";
 
 const useSocket = () => {
   const [socket, setSocket] = useState(null);
@@ -8,7 +8,8 @@ const useSocket = () => {
   const [networkFiles, setNetworkFiles] = useState([]);
 
   useEffect(() => {
-    const newSocket = io("/", {
+    // Connect to the /ui namespace
+    const newSocket = io("/ui", {
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,
     });
@@ -16,7 +17,7 @@ const useSocket = () => {
     setSocket(newSocket);
 
     newSocket.on("connect", () => {
-      console.log("Socket.IO Connected");
+      console.log("UI Socket.IO Connected");
       setStatus("connected");
     });
 
@@ -36,7 +37,7 @@ const useSocket = () => {
     });
 
     newSocket.on("disconnect", () => {
-      console.log("Socket.IO Disconnected");
+      console.log("UI Socket.IO Disconnected");
       setStatus("disconnected");
     });
 

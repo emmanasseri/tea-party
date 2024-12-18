@@ -10,10 +10,12 @@ import {
   Box,
   Input,
 } from "@chakra-ui/react";
+import useSocket from "../services/websocketService";
 
 function FileListing({ fileList }) {
   const [files, setFiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const { socket } = useSocket();
 
   // Update local state whenever fileList prop changes
   useEffect(() => {
@@ -23,7 +25,7 @@ function FileListing({ fileList }) {
 
   const downloadFile = (fileName) => {
     console.log(`Attempting to download: ${fileName}`);
-    // Add actual download logic here if available
+    socket.emit("download-request", { fileName: fileName });
   };
 
   const handleSearchChange = (event) => {
