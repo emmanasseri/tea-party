@@ -19,11 +19,11 @@ class GossipManager {
       });
 
       socket.on("new-file-upload", (fileData) => {
-        this.handleFileMetadata(socket, fileData, true); // True indicates origin from upload
+        this.handleFileMetadata(socket, fileData, true);
       });
 
       socket.on("update-file-metadata", (fileData) => {
-        this.handleFileMetadata(socket, fileData, false); // False indicates reception from another node
+        this.handleFileMetadata(socket, fileData, false);
       });
     });
   }
@@ -33,15 +33,12 @@ class GossipManager {
       `Received file data from [${socket.id}]: ${JSON.stringify(fileData)}`
     );
     const existingFile = this.allFiles.get(fileData.name);
-
-    // Check if the file is new or has been updated
     if (
       !existingFile ||
       (existingFile && existingFile.lastModified < fileData.lastModified)
     ) {
-      this.allFiles.set(fileData.name, fileData); // Update the central store with new or updated file metadata
+      this.allFiles.set(fileData.name, fileData);
 
-      // Broadcast only if this is a new or updated file and the metadata originated from this node
       if (isOrigin) {
         this.broadcastFileMetadata(fileData);
       }
