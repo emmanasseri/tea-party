@@ -22,6 +22,29 @@ class GossipManager {
     this.setupPeerListeners(this.peerNamespace);
 
     this.initialPeers = initialPeers;
+
+    // Connect to initial peers given by port numbers
+    this.connectToInitialPeers();
+  }
+
+  connectToInitialPeers() {
+    console.log(
+      `[${this.port}] Connecting to initial peers: ${this.initialPeers}`
+    );
+    this.initialPeers.forEach((peerPort) => {
+      const peerAddress = `http://localhost:${peerPort}/peers`;
+      const tryConnect = () => {
+        if (this.nodeId) {
+          this.connectToPeer(peerAddress);
+        } else {
+          console.log(
+            `[${this.port}] Node ID not set, retrying connection to ${peerAddress} in 5 seconds`
+          );
+          setTimeout(tryConnect, 5000); // Retry every 5 seconds
+        }
+      };
+      tryConnect();
+    });
   }
 
   setupUIListeners(uiNamespace) {
@@ -32,11 +55,6 @@ class GossipManager {
       UISocket.on("set-own-node-identity", ({ nodeId }) => {
         console.log(`[${this.port}] Setting my node ID to: ${nodeId}`);
         this.nodeId = nodeId;
-
-        // Connect to initial peers given by port
-        this.initialPeers.forEach((peerPort) =>
-          this.connectToPeerByPort(peerPort)
-        );
 
         // Broadcast our nodeId to currently connected peers
         this.peers.forEach(({ socket: peerSocket }, peerId) => {
@@ -119,14 +137,14 @@ class GossipManager {
         console.log(
           `[${this.port}] Received update-file-metadata from a peer: ${fileData.name}`
         );
-        this.handleFileMetadata(socket, fileData, false);
+        this.handleFileMetadata(peerSocket, fileData, false);
       });
 
       peerSocket.on("new-file-upload", (fileData) => {
         console.log(
           `[${this.port}] Received new-file-upload from a peer: ${fileData.name}`
         );
-        this.handleFileMetadata(socket, fileData, true);
+        this.handleFileMetadata(peerSocket, fileData, true);
       });
 
       peerSocket.on(
@@ -140,44 +158,38 @@ class GossipManager {
       );
 
       peerSocket.on("disconnect", () => {
-        console.log(`[${this.port}] Peer disconnected: ${socket.id}`);
-        this.removePeerBySocket(socket);
+        console.log(`[${this.port}] Peer disconnected: ${peerSocket.id}`);
+        this.removePeerBySocket(peerSocket);
       });
     });
   }
 
-  connectToPeerByPort(peerPort) {
+  connectToPeer(peerAddress) {
     if (!this.nodeId) {
       console.log(
-        `[${this.port}] Delaying connection to ${peerPort} until nodeId is set`
+        `[${this.port}] Delaying connection to ${peerAddress} until nodeId is set`
       );
       return;
     }
-    if (peerPort === this.port.toString()) {
-      console.log(`[${this.port}] Skipping self port ${peerPort}`);
-      return;
-    }
 
-    const address = `http://localhost:${peerPort}/peers`;
-    console.log(`[${this.port}] Attempting to connect to peer at ${address}`);
+    console.log(
+      `[${this.port}] Attempting to connect to peer at ${peerAddress}`
+    );
 
-    const peerSocket = io(address);
+    const peerSocket = io(peerAddress);
 
     peerSocket.on("connect", () => {
-      console.log(`[${this.port}] Connected to peer at ${peerPort}`);
-      // Store in pending until nodeId known
-      this.pendingPeers.set(peerPort);
+      console.log(`[${this.port}] Connected to peer at ${peerAddress}`);
+      this.pendingPeers.set(peerAddress, peerSocket);
 
-      // Send our nodeId if we have it
       if (this.nodeId) {
         console.log(
           `[${this.port}] Sending this info to peers about myself: nodeId=${this.nodeId}, address=${this.address}`
         );
-        peerSocket.emit(
-          "node-identity",
-          { nodeId: this.nodeId },
-          { address: this.address }
-        );
+        peerSocket.emit("node-identity", {
+          nodeId: this.nodeId,
+          address: this.address,
+        });
         this.sendPeerList(peerSocket);
       }
     });
@@ -190,12 +202,11 @@ class GossipManager {
       this.handleIncomingNodeIdentity(peerSocket, nodeId, address);
     });
 
-    // Updated to "shared-peer-list" for consistency
     peerSocket.on("shared-peer-list", (peerList) => {
       console.log(
-        `[${this.port}] Received peer list from ${address}: ${JSON.stringify(
-          peerList
-        )}`
+        `[${
+          this.port
+        }] Received peer list from ${peerAddress}: ${JSON.stringify(peerList)}`
       );
 
       if (!Array.isArray(peerList)) {
@@ -220,26 +231,26 @@ class GossipManager {
 
     peerSocket.on("update-file-metadata", (fileData) => {
       console.log(
-        `[${this.port}] update-file-metadata from ${address}: ${fileData.name}`
+        `[${this.port}] update-file-metadata from ${peerAddress}: ${fileData.name}`
       );
       this.handleFileMetadata(peerSocket, fileData, false);
     });
 
     peerSocket.on("new-file-upload", (fileData) => {
       console.log(
-        `[${this.port}] new-file-upload from ${address}: ${fileData.name}`
+        `[${this.port}] new-file-upload from ${peerAddress}: ${fileData.name}`
       );
       this.handleFileMetadata(peerSocket, fileData, true);
     });
 
     peerSocket.on("disconnect", () => {
-      console.log(`[${this.port}] Disconnected from peer at ${address}`);
+      console.log(`[${this.port}] Disconnected from peer at ${peerAddress}`);
       this.removePeerBySocket(peerSocket);
     });
 
     peerSocket.on("error", (error) => {
       console.log(
-        `[${this.port}] Error connecting to ${address}: ${error.message}`
+        `[${this.port}] Error connecting to ${peerAddress}: ${error.message}`
       );
     });
   }
@@ -267,7 +278,7 @@ class GossipManager {
         this.pendingPeers.delete(address);
       }
 
-      this.peers.set(nodeId, address);
+      this.peers.set(nodeId, { socket, address });
     }
 
     console.log(
@@ -292,17 +303,18 @@ class GossipManager {
 
     peerSocket.emit("shared-peer-list", peerArray);
   }
+
   updatePeers(newPeers) {
     let newPeerAdded = false;
 
-    newPeers.forEach(({ nodeId, port }) => {
+    newPeers.forEach(({ nodeId, address }) => {
       if (nodeId && nodeId !== this.nodeId && !this.peers.has(nodeId)) {
         console.log(
-          `[${this.port}] Found a new friend! adding ${nodeId} at port ${port}`
+          `[${this.port}] Found a new friend! adding ${nodeId} at address ${address}`
         );
 
-        // Add the new peer with nodeId and port
-        this.peers.set(nodeId, { address: `http://localhost:${port}/peers` });
+        // Add the new peer with nodeId and address
+        this.peers.set(nodeId, { address });
         newPeerAdded = true;
       }
     });
