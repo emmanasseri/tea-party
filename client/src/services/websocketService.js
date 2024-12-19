@@ -23,7 +23,9 @@ const useSocket = () => {
 
     newSocket.on("update-peer-list", (updatedPeers) => {
       console.log("Received updated peer list:", updatedPeers);
-      setPeers(updatedPeers);
+      const validPeers = updatedPeers.filter((peer) => peer.nodeId !== null);
+      console.log("\nValid peers:", validPeers);
+      setPeers(validPeers);
     });
 
     newSocket.on("initial-file-list", (fileList) => {

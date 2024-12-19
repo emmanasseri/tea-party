@@ -127,9 +127,10 @@ class GossipManager {
         });
 
         // After updating, emit the updated peer list to the UI client if available
-        if (this.client) {
-          this.client.emit("update-peer-list", Array.from(this.peers.keys()));
-        }
+        // if (this.client) {
+        //   this.client.emit("update-peer-list", Array.from(this.peers.keys()));
+        // }
+        this.updateUIWithPeerList();
 
         console.log(
           `\n[${this.port}] Updated peer list: ${Array.from(this.peers.keys())}`
@@ -216,9 +217,10 @@ class GossipManager {
       }
 
       this.updatePeers(peerList);
-      if (this.client) {
-        this.client.emit("update-peer-list", Array.from(this.peers.keys()));
-      }
+      // if (this.client) {
+      //   this.client.emit("update-peer-list", Array.from(this.peers.keys()));
+      // }
+      this.updateUIWithPeerList();
     });
 
     socket.on("incoming-download-request", ({ fileName, requesterId }) => {
@@ -324,12 +326,25 @@ class GossipManager {
   broadcastFullPeerList() {
     const peerArray = Array.from(this.peers.keys());
     console.log(`\n[${this.port}] Broadcasting full peer list: ${peerArray}`);
-    this.client.emit("update-peer-list", peerArray);
+    //this.client.emit("update-peer-list", peerArray);
+    this.updateUIWithPeerList();
   }
   makeNewFriend(nodeId, address) {
     // create socket connection with peer
     const socket = io(address);
     this.setupIndividualPeerListeners(socket, nodeId, address);
+  }
+
+  updateUIWithPeerList() {
+    if (this.client) {
+      const peerList = Array.from(this.peers.entries()).map(
+        ([nodeId, { address }]) => ({
+          nodeId,
+          address,
+        })
+      );
+      this.client.emit("update-peer-list", peerList);
+    }
   }
 
   handleIncomingNodeIdentity(socket, nodeId, address) {
@@ -407,7 +422,8 @@ class GossipManager {
         )}`
       );
       if (this.client) {
-        this.client.emit("update-peer-list", Array.from(this.peers.keys()));
+        // this.client.emit("update-peer-list", Array.from(this.peers.keys()));
+        this.updateUIWithPeerList();
       }
 
       // After updating peers, broadcast the full peer list to all connected peers.
