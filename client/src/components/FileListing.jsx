@@ -23,9 +23,9 @@ function FileListing({ fileList }) {
     setFiles(fileList);
   }, [fileList]);
 
-  const downloadFile = (fileName) => {
-    console.log(`Attempting to download: ${fileName}`);
-    socket.emit("download-request", { fileName: fileName });
+  const downloadFile = (fileName, ownerId) => {
+    console.log(`Attempting to download: ${fileName} from owner: ${ownerId}`);
+    socket.emit("download-request-from-ui", { fileName, ownerId });
   };
 
   const handleSearchChange = (event) => {
@@ -52,8 +52,6 @@ function FileListing({ fileList }) {
         borderWidth="2px"
         _focus={{ borderColor: "blue.300" }}
       />
-      {/* If you want to refresh files from server-side, 
-          you could implement a call here. For now, let's just log that the button was clicked. */}
       <Button
         colorScheme="blue"
         onClick={() => console.log("Refresh Files button clicked")}
@@ -80,7 +78,7 @@ function FileListing({ fileList }) {
                 <Button
                   colorScheme="blue"
                   size="sm"
-                  onClick={() => downloadFile(file.name)}
+                  onClick={() => downloadFile(file.name, file.owner)}
                 >
                   Download
                 </Button>

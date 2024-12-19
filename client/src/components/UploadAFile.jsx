@@ -21,7 +21,7 @@ function UploadAFile({ socket }) {
       );
 
       if (socket && socket.connected) {
-        socket.emit("new-file-upload", fileData);
+        socket.emit("new-personal-file-upload", fileData);
         console.log("File data sent to the server.");
       } else {
         console.log("Socket is not connected.");
