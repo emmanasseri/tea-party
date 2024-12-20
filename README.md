@@ -33,16 +33,15 @@ A decentralized peer-to-peer (P2P) file sharing application utilizing a gossip p
 3. **Run Peers Locally:**
    - **Green Peer (Port 8085):**
      ```bash
-     cd server/src/network
-     node server.js 8085
+     node server/src/network/server.js 8085
      ```
    - **Blue Peer (Port 8083, connects to Green Peer):**
      ```bash
-     node server.js 8083 8085
+     node server/src/network/server.js 8083 8085
      ```
    - **Red Peer (Port 8081, connects to Green Peer):**
      ```bash
-     node server.js 8081 8085
+     node server/src/network/server.js 8081 8085
      ```
 
 4. **Access the UI:**
