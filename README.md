@@ -2,6 +2,8 @@
 
 A decentralized peer-to-peer (P2P) file sharing application utilizing a gossip protocol and blockchain wallet authentication. Built with Socket.IO, this system enables real-time file sharing and sets the foundation for rewarding peers through tipping mechanisms.
 
+![UI](https://github.com/emmanasseri/tea-party/blob/72b90e53cd8890167b11eff7b6eb90b607c9b229/splash-image.png)
+
 ## Features
 
 - **Decentralized Network:** Each node acts as both server and client, promoting a resilient and scalable architecture.
